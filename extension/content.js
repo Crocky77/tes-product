@@ -1,12 +1,22 @@
 // ================================
 // TES – Training Efficiency Score
-// Stable content script for Hattrick
+// UI v1.0 mock module
 // ================================
 
 (function () {
-  const TES_ID = "tes-widget";
-  const TES_VALUE = "99 (mock)";
+  const TES_ID = "tes-module";
+  const TES_STYLE_ID = "tes-module-style";
 
+  const TES_CONFIG = {
+    version: "v1.0",
+    status: "MOCK",
+    score: 99,
+    breakdown: {
+      formFactor: "+12%",
+      staminaFactor: "+8%",
+      primarySkillWeight: "High",
+    },
+  };
 
   function isPlayerDetailsPage() {
     const path = (window.location.pathname || "").toLowerCase();
@@ -18,34 +28,202 @@
     if (old) old.remove();
   }
 
-  function createTESBlock() {
+  function clampScore(value) {
+    if (Number.isNaN(value)) return 0;
+    return Math.max(0, Math.min(100, value));
+  }
+
+  function getScoreColor(score) {
+    if (score <= 49) return "#a33";
+    if (score <= 74) return "#d9822b";
+    if (score <= 89) return "#2c7a2c";
+    return "#1b5e20";
+  }
+
+  function ensureStyle() {
+    if (document.getElementById(TES_STYLE_ID)) return;
+
+    const style = document.createElement("style");
+    style.id = TES_STYLE_ID;
+    style.textContent = `
+      #tes-module {
+        border: 1px solid #cfcfcf;
+        background: #ffffff;
+        padding: 12px;
+        margin: 10px 0;
+        width: 100%;
+        box-sizing: border-box;
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 13px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+      }
+
+      #tes-module .tes-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 8px;
+      }
+
+      #tes-module .tes-title {
+        font-weight: bold;
+        color: #2d2d2d;
+      }
+
+      #tes-module .tes-version {
+        font-size: 11px;
+        color: #777;
+      }
+
+      #tes-module .tes-main {
+        display: flex;
+        gap: 15px;
+        align-items: center;
+      }
+
+      #tes-module .tes-score-block {
+        text-align: center;
+        min-width: 56px;
+      }
+
+      #tes-module .tes-score-value {
+        font-size: 28px;
+        font-weight: bold;
+        line-height: 1;
+      }
+
+      #tes-module .tes-score-label {
+        font-size: 11px;
+        color: #555;
+      }
+
+      #tes-module .tes-bar-wrapper {
+        flex: 1;
+        min-width: 200px;
+      }
+
+      #tes-module .tes-bar-bg {
+        width: 200px;
+        max-width: 100%;
+        height: 10px;
+        background: #e5e5e5;
+        position: relative;
+      }
+
+      #tes-module .tes-bar-fill {
+        height: 100%;
+        background: linear-gradient(to right, #7bbf6a, #2c7a2c);
+      }
+
+      #tes-module .tes-bar-scale {
+        display: flex;
+        justify-content: space-between;
+        font-size: 10px;
+        color: #777;
+        margin-top: 3px;
+      }
+
+      #tes-module .tes-details {
+        margin-top: 10px;
+        border-top: 1px solid #eee;
+        padding-top: 6px;
+      }
+
+      #tes-module .tes-row {
+        display: flex;
+        justify-content: space-between;
+        font-size: 12px;
+        margin-bottom: 2px;
+      }
+
+      #tes-module .tes-footer {
+        margin-top: 6px;
+        text-align: right;
+      }
+
+      #tes-module .tes-status.mock {
+        font-size: 10px;
+        color: #a33;
+      }
+
+      #tes-module .tes-status.live {
+        font-size: 10px;
+        color: #2c7a2c;
+      }
+
+      @media (max-width: 500px) {
+        #tes-module .tes-main {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+
+        #tes-module .tes-bar-wrapper {
+          width: 100%;
+          min-width: 0;
+        }
+
+        #tes-module .tes-bar-bg {
+          width: 100%;
+        }
+      }
+    `;
+
+    (document.head || document.documentElement).appendChild(style);
+  }
+
+  function createTESModule() {
+    const score = clampScore(TES_CONFIG.score);
+    const scoreColor = getScoreColor(score);
+
     const wrapper = document.createElement("div");
     wrapper.id = TES_ID;
-    wrapper.style.margin = "8px 0";
-    wrapper.style.padding = "6px 10px";
-    wrapper.style.border = "1px solid #c88";
-    wrapper.style.background = "#fff5f5";
-    wrapper.style.display = "flex";
-    wrapper.style.alignItems = "center";
-    wrapper.style.gap = "10px";
-    wrapper.style.maxWidth = "420px";
-    wrapper.style.borderRadius = "6px";
-    wrapper.style.boxShadow = "0 1px 4px rgba(0,0,0,0.12)";
-    wrapper.style.zIndex = "2147483647";
 
-    const label = document.createElement("strong");
-    label.textContent = "TES";
-    label.style.color = "#b00000";
+    const statusClass = TES_CONFIG.status.toLowerCase() === "live" ? "live" : "mock";
+    const statusText = statusClass === "live" ? "LIVE MODE" : "MOCK MODE";
 
-    const value = document.createElement("span");
-    value.textContent = TES_VALUE;
-    value.style.border = "1px solid #c88";
-    value.style.padding = "2px 6px";
-    value.style.background = "#fff";
-    value.style.fontWeight = "bold";
+    wrapper.innerHTML = `
+      <div class="tes-header">
+        <span class="tes-title">Training Efficiency Score</span>
+        <span class="tes-version">${TES_CONFIG.version}</span>
+      </div>
 
-    wrapper.appendChild(label);
-    wrapper.appendChild(value);
+      <div class="tes-main">
+        <div class="tes-score-block">
+          <div class="tes-score-value" style="color: ${scoreColor};">${score}</div>
+          <div class="tes-score-label">TES</div>
+        </div>
+
+        <div class="tes-bar-wrapper">
+          <div class="tes-bar-bg">
+            <div class="tes-bar-fill" style="width: ${score}%;"></div>
+          </div>
+          <div class="tes-bar-scale">
+            <span>0</span>
+            <span>50</span>
+            <span>75</span>
+            <span>100</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="tes-details">
+        <div class="tes-row">
+          <span>Form factor</span>
+          <span>${TES_CONFIG.breakdown.formFactor}</span>
+        </div>
+        <div class="tes-row">
+          <span>Stamina factor</span>
+          <span>${TES_CONFIG.breakdown.staminaFactor}</span>
+        </div>
+        <div class="tes-row">
+          <span>Primary skill weight</span>
+          <span>${TES_CONFIG.breakdown.primarySkillWeight}</span>
+        </div>
+      </div>
+
+      <div class="tes-footer">
+        <span class="tes-status ${statusClass}">${statusText}</span>
+      </div>
+    `;
 
     return wrapper;
   }
@@ -53,9 +231,8 @@
   function findPsicoTSIBlock() {
     const headers = document.querySelectorAll("h3, h2, .boxTitle");
     for (const h of headers) {
-      if (h.textContent && h.textContent.toLowerCase().includes("psicotsi")) {
-        return h.closest("div");
-      }
+      const text = (h.textContent || "").toLowerCase();
+      if (text.includes("psicotsi")) return h.closest("div");
     }
     return null;
   }
@@ -64,37 +241,38 @@
     return document.querySelector("table.tabs, ul.tabs, .tabs");
   }
 
-  function attachFloatingFallback(tesBlock) {
-    tesBlock.style.position = "fixed";
-    tesBlock.style.top = "12px";
-    tesBlock.style.right = "12px";
-    tesBlock.style.margin = "0";
+  function attachFallback(module) {
+    const content = document.querySelector("#main, #ctl00_cpContent, .main, #content");
+    if (content) {
+      content.prepend(module);
+      return;
+    }
 
     if (document.body) {
-      document.body.appendChild(tesBlock);
+      document.body.prepend(module);
     }
   }
 
   function injectTES() {
     removeExistingTES();
-
     if (!isPlayerDetailsPage()) return;
 
-    const tesBlock = createTESBlock();
+    ensureStyle();
+    const module = createTESModule();
 
     const psicoTSI = findPsicoTSIBlock();
     if (psicoTSI && psicoTSI.parentNode) {
-      psicoTSI.parentNode.insertBefore(tesBlock, psicoTSI);
+      psicoTSI.parentNode.insertBefore(module, psicoTSI);
       return;
     }
 
     const tabs = findTabsBlock();
     if (tabs && tabs.parentNode) {
-      tabs.parentNode.insertBefore(tesBlock, tabs);
+      tabs.parentNode.insertBefore(module, tabs);
       return;
     }
 
-    attachFloatingFallback(tesBlock);
+    attachFallback(module);
   }
 
   let scheduled = false;
@@ -111,7 +289,6 @@
 
   function startObserver() {
     if (!document.body) return false;
-
     observer.observe(document.body, {
       childList: true,
       subtree: true,
@@ -132,5 +309,5 @@
 
   scheduleInject();
 
-  console.log("[TES] content script loaded", window.location.href, "playerPage:", isPlayerDetailsPage());
+  console.log("[TES] module loaded", window.location.href, "playerPage:", isPlayerDetailsPage());
 })();

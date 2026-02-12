@@ -1,0 +1,24 @@
+.tes-container {
+  background: #f8f2f2;
+  border: 2px solid #c65c5c;
+  padding: 8px 12px;
+  margin: 10px 0;
+  display: flex;
+  justify-content: space-between;
+  font-family: Arial, sans-serif;
+}
+
+.tes-title {
+  font-weight: bold;
+}
+
+.tes-score {
+  font-weight: bold;
+  color: #b00000;
+}
+
+.tes-score span {
+  font-weight: normal;
+  font-size: 12px;
+  opacity: 0.7;
+}

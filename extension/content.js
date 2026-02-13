@@ -6,9 +6,12 @@
 (function () {
   const PLAYER_PAGE_PATH = "/club/players/player.aspx";
   const BENCHMARKS_URL = chrome.runtime.getURL("benchmarks.json");
+  const U21_TARGETS_URL = chrome.runtime.getURL("u21_targets.json");
+  const NT_TARGETS_URL = chrome.runtime.getURL("nt_targets.json");
   const PANEL_ID = "tes-module";
 
   let lastRenderKey = "";
+  let resourceCache = null;
 
   function isPlayerDetailsPage() {
     return (window.location.pathname || "").toLowerCase().includes(PLAYER_PAGE_PATH);
@@ -147,10 +150,26 @@
     return avg / 90;
   }
 
-  async function loadBenchmarks() {
-    const res = await fetch(BENCHMARKS_URL);
-    if (!res.ok) throw new Error("Failed to load benchmarks.json");
-    return res.json();
+  async function loadResources() {
+    if (resourceCache) return resourceCache;
+
+    const [benchRes, u21Res, ntRes] = await Promise.all([
+      fetch(BENCHMARKS_URL),
+      fetch(U21_TARGETS_URL),
+      fetch(NT_TARGETS_URL),
+    ]);
+
+    if (!benchRes.ok) throw new Error("Failed to load benchmarks.json");
+    if (!u21Res.ok) throw new Error("Failed to load u21_targets.json");
+    if (!ntRes.ok) throw new Error("Failed to load nt_targets.json");
+
+    resourceCache = {
+      benchmarks: await benchRes.json(),
+      u21Targets: await u21Res.json(),
+      ntTargets: await ntRes.json(),
+    };
+
+    return resourceCache;
   }
 
   function findPsicoTSIBlock() {
@@ -221,7 +240,7 @@
 
     if (!Number.isFinite(ageYears) || !contributionByPosition) return;
 
-    const benchmarks = await loadBenchmarks();
+    const { benchmarks, u21Targets, ntTargets } = await loadResources();
     const result = window.TESEngine.calculateTES(
       {
         ageYears,
@@ -231,7 +250,8 @@
         form: skills.form,
         minutesRatio,
       },
-      benchmarks
+      benchmarks,
+      { u21: u21Targets, nt: ntTargets }
     );
 
     if (!result) return;

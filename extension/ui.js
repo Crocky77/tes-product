@@ -180,6 +180,8 @@
         <div class="tes-row"><span class="tes-label">Age Benchmark Ratio</span><span class="tes-value">${result.factors.ageEfficiencyIndex}%</span></div>
         <div class="tes-row"><span class="tes-label">Evaluation Tier</span><span class="tes-value">${result.evaluationTier}</span></div>
         <div class="tes-row"><span class="tes-label">Competitive Window</span><span class="tes-value">${result.competitiveWindow}</span></div>
+        <div class="tes-row"><span class="tes-label">U21 Target Fit</span><span class="tes-value">${result.targetFit?.u21Score ?? 0}%${result.targetFit?.u21Profile ? ` · ${result.targetFit.u21Profile}` : ""}</span></div>
+        <div class="tes-row"><span class="tes-label">NT Target Fit</span><span class="tes-value">${result.targetFit?.ntScore ?? 0}%${result.targetFit?.ntProfile ? ` · ${result.targetFit.ntProfile}` : ""}</span></div>
         <div class="tes-row"><span class="tes-label">NT Minimum</span><span class="tes-value ${result.meetsMinimum ? "ok" : "bad"}">${result.minBenchmark.toFixed(2)} ${result.meetsMinimum ? "✓" : "✕"}</span></div>
       </div>
 

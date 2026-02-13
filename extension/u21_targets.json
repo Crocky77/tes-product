@@ -1,0 +1,32 @@
+{
+  "GK": [
+    { "name": "U21 GK", "skills": { "goalkeeping": 17, "defending": 5, "setPieces": 14 } }
+  ],
+  "WB": [
+    { "name": "U21 WB v1", "skills": { "defending": 14, "playmaking": 5, "winger": 11, "passing": 5 } },
+    { "name": "U21 WB v2", "skills": { "defending": 13, "playmaking": 5, "winger": 13, "passing": 5 } },
+    { "name": "U21 WB SP", "skills": { "defending": 13, "playmaking": 5, "winger": 10, "passing": 5, "setPieces": 14 } }
+  ],
+  "CD": [
+    { "name": "U21 CD", "skills": { "defending": 14, "playmaking": 10 } },
+    { "name": "U21 CD CA", "skills": { "defending": 14, "passing": 10 } },
+    { "name": "U21 CD Off", "skills": { "defending": 12, "playmaking": 12 } },
+    { "name": "U21 CD SP", "skills": { "defending": 14, "playmaking": 6, "passing": 6, "setPieces": 14 } }
+  ],
+  "IM": [
+    { "name": "U21 IM", "skills": { "defending": 6, "playmaking": 16, "passing": 6 } },
+    { "name": "U21 IM Off", "skills": { "playmaking": 15, "passing": 9, "scoring": 5 } },
+    { "name": "U21 IMTW", "skills": { "defending": 5, "playmaking": 15, "winger": 10 } }
+  ],
+  "W": [
+    { "name": "U21 WTM", "skills": { "defending": 7, "playmaking": 13, "winger": 13 } },
+    { "name": "U21 W", "skills": { "defending": 7, "playmaking": 10, "winger": 15, "passing": 8 } }
+  ],
+  "FW": [
+    { "name": "U21 FW", "skills": { "playmaking": 7, "winger": 8, "passing": 8, "scoring": 14 } },
+    { "name": "U21 FW2", "skills": { "winger": 7, "passing": 7, "scoring": 15 } },
+    { "name": "U21 TDF", "skills": { "playmaking": 11.5, "winger": 5, "passing": 13, "scoring": 8 } },
+    { "name": "U21 PNF", "skills": { "playmaking": 10, "winger": 6, "passing": 6, "scoring": 14 } },
+    { "name": "U21 FTW", "skills": { "winger": 13, "passing": 7, "scoring": 13 } }
+  ]
+}

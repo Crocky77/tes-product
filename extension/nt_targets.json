@@ -1,0 +1,34 @@
+{
+  "GK": [
+    { "name": "NT GK", "skills": { "goalkeeping": 20.6, "defending": 15, "setPieces": 20 } },
+    { "name": "NT GK alt", "skills": { "goalkeeping": 20.3, "defending": 15, "passing": 9, "setPieces": 20 } }
+  ],
+  "CD": [
+    { "name": "NT CD Q/H", "skills": { "defending": 18, "playmaking": 16, "passing": 10, "setPieces": 13 } },
+    { "name": "NT CD U", "skills": { "defending": 17.6, "playmaking": 15, "passing": 13, "setPieces": 13 } },
+    { "name": "NT CD T", "skills": { "defending": 17.3, "playmaking": 15, "passing": 14, "setPieces": 13 } }
+  ],
+  "WB": [
+    { "name": "NT WB Q/H", "skills": { "defending": 18, "winger": 15, "playmaking": 10, "passing": 10, "setPieces": 13 } },
+    { "name": "NT WB U", "skills": { "defending": 18, "winger": 15, "playmaking": 10, "passing": 13, "setPieces": 13 } },
+    { "name": "NT WB T", "skills": { "defending": 18, "winger": 15, "playmaking": 10, "passing": 14, "setPieces": 13 } }
+  ],
+  "W": [
+    { "name": "NT W Q/U/H", "skills": { "winger": 18, "playmaking": 17, "passing": 10, "defending": 11, "scoring": 5, "setPieces": 12 } },
+    { "name": "NT W T", "skills": { "winger": 18, "playmaking": 16, "passing": 8, "defending": 11, "scoring": 5, "setPieces": 12 } },
+    { "name": "NT W Off", "skills": { "winger": 19, "playmaking": 15, "passing": 12, "scoring": 5, "setPieces": 12 } }
+  ],
+  "IM": [
+    { "name": "NT IM Balanced", "skills": { "playmaking": 19, "passing": 13, "defending": 10, "scoring": 10, "setPieces": 12 } },
+    { "name": "NT PDIM", "skills": { "playmaking": 19, "passing": 9, "defending": 15, "setPieces": 12 } },
+    { "name": "NT IM Off", "skills": { "playmaking": 18.5, "passing": 15, "scoring": 12, "setPieces": 12 } },
+    { "name": "NT IMTW", "skills": { "playmaking": 18.7, "passing": 11, "winger": 14, "defending": 9, "scoring": 7, "setPieces": 12 } }
+  ],
+  "FW": [
+    { "name": "NT FW U/Q", "skills": { "scoring": 18, "passing": 16, "playmaking": 11, "winger": 11, "setPieces": 12 } },
+    { "name": "NT PNF", "skills": { "scoring": 17.4, "passing": 12, "playmaking": 16, "winger": 10, "setPieces": 12 } },
+    { "name": "NT DFW", "skills": { "scoring": 14, "passing": 17.5, "playmaking": 15, "winger": 8, "setPieces": 12 } },
+    { "name": "NT Technical", "skills": { "scoring": 19, "passing": 12, "playmaking": 13, "winger": 7, "setPieces": 12 } },
+    { "name": "NT FTW", "skills": { "scoring": 18, "passing": 13, "winger": 17, "setPieces": 12 } }
+  ]
+}

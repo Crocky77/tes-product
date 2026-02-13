@@ -23,34 +23,22 @@
   }
 
   function detectPrimaryPosition(contributionByPosition) {
-    const entries = Object.entries(contributionByPosition || {}).filter(
-      ([, value]) => Number.isFinite(value)
-    );
-
+    const entries = Object.entries(contributionByPosition || {}).filter(([, value]) => Number.isFinite(value));
     if (entries.length === 0) return null;
 
     entries.sort((a, b) => b[1] - a[1]);
     const [primaryPosition, realContribution] = entries[0];
-
-    const secondaryPosition = entries[1] ? entries[1][0] : primaryPosition;
     const secondaryContribution = entries[1] ? entries[1][1] : realContribution;
 
-    return { primaryPosition, realContribution, secondaryPosition, secondaryContribution };
+    return { primaryPosition, realContribution, secondaryContribution };
   }
 
   function performanceTier(tes) {
-    if (tes >= 90) return "Elite Tier";
-    if (tes >= 80) return "High Performance";
-    if (tes >= 70) return "Competitive Level";
-    if (tes >= 60) return "Developing";
-    return "Below Benchmark";
-  }
-
-  function evaluationTier(tes) {
-    if (tes >= 90) return "Elite Tier";
-    if (tes >= 80) return "NT Competitive";
-    if (tes >= 70) return "High Club Level";
-    return "Developmental";
+    if (tes >= 95) return "Elite Tier";
+    if (tes >= 90) return "NT Level";
+    if (tes >= 80) return "Competitive";
+    if (tes >= 70) return "Developing";
+    return "Below NT Level";
   }
 
   function competitiveWindow(age) {
@@ -70,32 +58,27 @@
 
     const { defending = 0, playmaking = 0, passing = 0, scoring = 0, winger = 0 } = skills;
 
-    if (primaryPosition === "CD") {
-      if (defending >= 16 && playmaking >= 10 && passing >= 8) return { score: 0, label: "Balanced" };
-      if (defending >= 14 && playmaking >= 8 && passing >= 6) return { score: -4, label: "Slight Deviation" };
-      return { score: -9, label: "Unbalanced" };
-    }
-
     if (primaryPosition === "IM") {
-      // IM with very low defending/winger gets penalized harder at NT level.
-      if (playmaking >= 16 && passing >= 10 && defending >= 7 && winger >= 5) {
-        return { score: 0, label: "Balanced" };
-      }
-      if (playmaking >= 14 && passing >= 8 && defending >= 6) {
-        return { score: -5, label: "Slight Deviation" };
-      }
+      if (playmaking >= 16 && (passing >= 10 || defending >= 10 || winger >= 12)) return { score: 0, label: "Balanced" };
+      if (playmaking >= 14 && passing >= 8) return { score: -5, label: "Slight Deviation" };
       return { score: -10, label: "Unbalanced" };
     }
 
+    if (primaryPosition === "CD") {
+      if (defending >= 16 && (playmaking >= 10 || passing >= 10)) return { score: 0, label: "Balanced" };
+      if (defending >= 14 && (playmaking >= 8 || passing >= 8)) return { score: -4, label: "Slight Deviation" };
+      return { score: -9, label: "Unbalanced" };
+    }
+
     if (primaryPosition === "FW") {
-      if (scoring >= 15 && passing >= 8 && playmaking >= 6) return { score: 0, label: "Balanced" };
-      if (scoring >= 13 && passing >= 6) return { score: -4, label: "Slight Deviation" };
+      if (scoring >= 16 && (passing >= 12 || playmaking >= 11 || winger >= 11)) return { score: 0, label: "Balanced" };
+      if (scoring >= 14 && passing >= 8) return { score: -4, label: "Slight Deviation" };
       return { score: -8, label: "Unbalanced" };
     }
 
     if (primaryPosition === "WB" || primaryPosition === "W") {
-      if (winger >= 14 && passing >= 8 && defending >= 8) return { score: 0, label: "Balanced" };
-      if (winger >= 12 && passing >= 6) return { score: -4, label: "Slight Deviation" };
+      if (winger >= 14 && (defending >= 10 || passing >= 10 || playmaking >= 10)) return { score: 0, label: "Balanced" };
+      if (winger >= 12 && passing >= 7) return { score: -4, label: "Slight Deviation" };
       return { score: -8, label: "Unbalanced" };
     }
 
@@ -105,8 +88,8 @@
   function physicalModifier(stamina, form) {
     const s = Number.isFinite(stamina) ? clamp(stamina, 1, 20) : 7;
     const f = Number.isFinite(form) ? clamp(form, 1, 20) : 7;
-
     const weighted = s * 0.45 + f * 0.55;
+
     if (weighted >= 8.5) return { score: 1, label: "Optimal" };
     if (weighted >= 6.5) return { score: 0, label: "Adequate" };
     return { score: -3, label: "Below Optimal" };
@@ -122,28 +105,50 @@
     return { score: -3, label: "Low", value: percent };
   }
 
-  function eliteCapAllowed(age, realContribution, eliteBenchmark) {
-    if (!Number.isFinite(age) || !Number.isFinite(realContribution) || !Number.isFinite(eliteBenchmark)) {
-      return false;
+  function targetProfileFit(skills, profile) {
+    const req = profile.skills || {};
+    const keys = Object.keys(req);
+    if (!keys.length) return 0;
+
+    let acc = 0;
+    for (const key of keys) {
+      const target = req[key];
+      const actual = Number.isFinite(skills?.[key]) ? skills[key] : 0;
+      acc += clamp(actual / target, 0, 1.15);
     }
 
-    return age >= 28 && age <= 31 && realContribution >= eliteBenchmark * 1.03;
+    const avg = acc / keys.length;
+
+    // Minimum target ~90, over-target up to 100.
+    if (avg >= 1) {
+      const extra = clamp((avg - 1) / 0.15, 0, 1);
+      return Math.round(90 + extra * 10);
+    }
+
+    return Math.round(avg * 90);
+  }
+
+  function targetBestFit(position, skills, matrix) {
+    const profiles = matrix?.[position] || [];
+    if (!profiles.length) return { score: 0, profile: null };
+
+    let best = { score: 0, profile: profiles[0].name };
+    for (const p of profiles) {
+      const score = targetProfileFit(skills, p);
+      if (score > best.score) best = { score, profile: p.name };
+    }
+    return best;
   }
 
   function applyBenchmarkCaps(score, benchmarkRatio) {
     let adjusted = score;
-
-    // If player is below NT minimum, prevent high labels.
     if (benchmarkRatio < 1.0 && adjusted > 79) adjusted = 79;
-    // If clearly below minimum, cap to developing range.
     if (benchmarkRatio < 0.9 && adjusted > 69) adjusted = 69;
-    // Very far from minimum should not look competitive.
     if (benchmarkRatio < 0.8 && adjusted > 59) adjusted = 59;
-
     return adjusted;
   }
 
-  function calculateTES(input, benchmarks) {
+  function calculateTES(input, benchmarks, targetMatrices = {}) {
     const age = input.ageYears;
     const primary = detectPrimaryPosition(input.contributionByPosition);
 
@@ -156,27 +161,36 @@
     if (!Number.isFinite(minBenchmark) || minBenchmark <= 0) return null;
 
     const eliteBenchmark = minBenchmark / 0.9;
-
     const benchmarkRatio = primary.realContribution / minBenchmark;
-    const cappedRatio = clamp(benchmarkRatio, 0, 1.15);
-    const tesRaw = cappedRatio * 100;
+    const baseRatio = clamp(benchmarkRatio, 0, 1.15);
+    const tesRaw = baseRatio * 100;
 
     const structure = skillStructureCheck(primary.primaryPosition, input.skills);
     const physical = physicalModifier(input.stamina, input.form);
     const usage = matchUsageModifier(input.minutesRatio);
-
     const agePenalty = age > 31 ? -2 : 0;
 
-    let tesAdjusted = tesRaw + structure.score + physical.score + usage.score + agePenalty;
+    const u21Fit = targetBestFit(primary.primaryPosition, input.skills, targetMatrices.u21 || {});
+    const ntFit = targetBestFit(primary.primaryPosition, input.skills, targetMatrices.nt || {});
+
+    // Hybrid score: current level + target-fit alignment
+    let tesAdjusted =
+      tesRaw * 0.55 +
+      u21Fit.score * 0.20 +
+      ntFit.score * 0.25 +
+      structure.score +
+      physical.score +
+      usage.score +
+      agePenalty;
 
     tesAdjusted = applyBenchmarkCaps(tesAdjusted, benchmarkRatio);
 
-    if (!eliteCapAllowed(age, primary.realContribution, eliteBenchmark) && tesAdjusted > 96) {
+    // Reserve true 100 for very high contribution + target alignment.
+    if (!(age >= 28 && age <= 31 && primary.realContribution >= eliteBenchmark * 1.03 && ntFit.score >= 92) && tesAdjusted > 96) {
       tesAdjusted = 96;
     }
 
     const tesScore = Math.round(clamp(tesAdjusted, 0, 100));
-
     const ageBenchmarkRatio = Math.round(benchmarkRatio * 100);
     const positionalImpact = Math.round(clamp((primary.realContribution / eliteBenchmark) * 100, 0, 100));
 
@@ -193,7 +207,7 @@
       tesScore,
       meetsMinimum: primary.realContribution >= minBenchmark,
       performanceTier: performanceTier(tesScore),
-      evaluationTier: evaluationTier(tesScore),
+      evaluationTier: performanceTier(tesScore),
       competitiveWindow: competitiveWindow(age),
       factors: {
         positionalImpact,
@@ -204,6 +218,12 @@
         physicalReadinessLabel: physical.label,
         matchUtilizationValue: usage.value,
         matchUtilizationLabel: usage.label,
+      },
+      targetFit: {
+        u21Score: u21Fit.score,
+        u21Profile: u21Fit.profile,
+        ntScore: ntFit.score,
+        ntProfile: ntFit.profile,
       },
       advanced: {
         normalizedContributionScore: toPercent(primary.realContribution / eliteBenchmark),

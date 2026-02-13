@@ -5,14 +5,26 @@
   "description": "Displays Talent Evaluation Score (TES) on Hattrick player pages.",
   "web_accessible_resources": [
     {
-      "resources": ["benchmarks.json"],
-      "matches": ["*://*.hattrick.org/*"]
+      "resources": [
+        "benchmarks.json",
+        "u21_targets.json",
+        "nt_targets.json"
+      ],
+      "matches": [
+        "*://*.hattrick.org/*"
+      ]
     }
   ],
   "content_scripts": [
     {
-      "matches": ["*://*.hattrick.org/*"],
-      "js": ["engine.js", "ui.js", "content.js"],
+      "matches": [
+        "*://*.hattrick.org/*"
+      ],
+      "js": [
+        "engine.js",
+        "ui.js",
+        "content.js"
+      ],
       "run_at": "document_idle",
       "all_frames": true
     }

@@ -18,30 +18,27 @@ TES does **not** include training planning, projection, simulation, optimization
 - `extension/content.js` → reads DOM and orchestrates injection
 - `extension/engine.js` → pure evaluative TES calculation
 - `extension/benchmarks.json` → age benchmark curves by position
+- `extension/u21_targets.json` → U21 target skill matrix profiles
+- `extension/nt_targets.json` → NT target skill matrix profiles
 - `extension/ui.js` → CHPP-compliant panel rendering
 
-## Current scoring model (v1)
+## Current scoring model (v2)
 
-1. Parse player decimal age from visible string (`X godina i Y dana`).
-2. Parse normalized position contributions from the visible contribution table.
-3. Primary position = maximum normalized contribution.
-4. Read age benchmark from per-position curves (linear interpolation).
-5. Base score:
-   - `performanceRatio = contribution / minBenchmark`
-   - cap ratio to `1.15`
-   - `TES_raw = performanceRatio * 100`
-6. Apply evaluative modifiers only:
-   - skill-structure modifier
-   - physical-readiness modifier
-   - match-usage modifier
-   - slight post-peak age modifier
-7. Elite cap model:
-   - score above 96 only if elite condition is satisfied.
+1. Parse decimal age from visible string (`X godina i Y dana`).
+2. Parse normalized position contribution values and detect primary position.
+3. Load age benchmark for primary position and calculate base performance ratio.
+4. Compute profile fit scores against U21 and NT target matrices (best matching profile).
+5. Final hybrid score:
+   - `55%` current contribution/age benchmark
+   - `20%` U21 target fit
+   - `25%` NT target fit
+   - plus evaluative modifiers (skill structure, physical readiness, match usage, age)
+6. Apply benchmark guardrail caps and elite-cap gate.
 
-## Stability improvements
+## Why manual targets before CHPP API
 
-- Panel render is now stabilized using state-hash comparison to avoid re-render flicker.
-- Mutation observer ignores panel-internal mutations.
+Without CHPP API, manual benchmark and target tables are required and expected.
+API later improves input quality and stability, but does not replace scoring methodology.
 
 ## Lokalno testiranje
 
@@ -54,12 +51,3 @@ Ako ne vidiš panel:
 - provjeri da URL sadrži `/Club/Players/Player.aspx`
 - reload extension u `chrome://extensions`
 - hard refresh stranice (`Ctrl+F5`)
-
-
-## CHPP API vs local evaluacija
-
-Bez CHPP licence/API-ja moramo ručno održavati benchmark tablice i parsirati samo vidljive DOM podatke.
-To je ispravan put za ovu fazu projekta.
-
-Kad CHPP API bude dostupan, možemo povećati preciznost (stabilniji input, bolji match usage i coverage),
-ali i dalje trebamo ručno definiranu evaluacijsku metodologiju (benchmark + modifikatori).

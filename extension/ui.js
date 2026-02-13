@@ -80,6 +80,7 @@
   }
 
   function factorBlock(name, desc, valueLabel, valuePct) {
+    const bar = Math.max(0, Math.min(100, Number(valuePct) || 0));
     return `
       <div class="tes-factor">
         <div class="tes-factor-row">
@@ -87,7 +88,7 @@
           <span class="tes-factor-value">${valueLabel}</span>
         </div>
         <div class="tes-factor-help">${desc}</div>
-        <div class="tes-bar-bg"><div class="tes-bar-fill" style="width:${valuePct}%;"></div></div>
+        <div class="tes-bar-bg"><div class="tes-bar-fill" style="width:${bar}%;"></div></div>
       </div>
     `;
   }

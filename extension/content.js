@@ -6,6 +6,9 @@
 (function () {
   const PLAYER_PAGE_PATH = "/club/players/player.aspx";
   const BENCHMARKS_URL = chrome.runtime.getURL("benchmarks.json");
+  const PANEL_ID = "tes-module";
+
+  let lastRenderKey = "";
 
   function isPlayerDetailsPage() {
     return (window.location.pathname || "").toLowerCase().includes(PLAYER_PAGE_PATH);
@@ -26,6 +29,12 @@
       if (Number.isFinite(years) && Number.isFinite(days)) return years + days / 112;
     }
 
+    const shortHr = text.match(/(\d+)\s*godin[aie]?/i);
+    if (shortHr) {
+      const years = Number(shortHr[1]);
+      if (Number.isFinite(years)) return years;
+    }
+
     return null;
   }
 
@@ -34,27 +43,46 @@
     const key = raw.trim().toLowerCase();
 
     if (/vrat|goal/.test(key)) return "GK";
-    if (/stoper|bran|defend/.test(key)) return "CD";
-    if (/wingback|boč|boc/.test(key)) return "WB";
+    if (/stoper|bran|defend|central defender/.test(key)) return "CD";
+    if (/wingback|boč|boc|bek/.test(key)) return "WB";
     if (/krilo|winger/.test(key)) return "W";
     if (/vez|mid/.test(key)) return "IM";
-    if (/napad|strik|forward/.test(key)) return "FW";
+    if (/napad|strik|forward|attacker/.test(key)) return "FW";
 
     return null;
   }
 
-  function parseContributionByPosition(text) {
-    const values = {};
+  function parseContributionByPositionFromTable(values) {
+    const headings = [...document.querySelectorAll("h2,h3,h4,.boxTitle")];
+    const contribHeading = headings.find((h) => /doprinos\s+pozicije|position\s+contribution/i.test(h.textContent || ""));
 
-    const bestPosMatch = text.match(/najbolja\s+pozicija\s*:\s*([^\n(]+)\((\d+[.,]\d+)\)/i);
-    if (bestPosMatch) {
-      const pos = normalizePosition(bestPosMatch[1]);
-      const value = Number(bestPosMatch[2].replace(",", "."));
-      if (pos && Number.isFinite(value)) values[pos] = value;
+    let scope = null;
+    if (contribHeading) {
+      scope = contribHeading.closest("div") || contribHeading.parentElement;
     }
 
-    // Optional secondary extraction from lines: "<position> (x.xx)"
-    const regex = /(vratar|stoper|branič|branic|wingback|krilo|vezni|napadač|napadac|goalkeeper|defender|midfielder|winger|forward)\s*\((\d+[.,]\d+)\)/gi;
+    const rows = (scope || document).querySelectorAll("table tr");
+
+    for (const row of rows) {
+      const cells = row.querySelectorAll("th, td");
+      if (cells.length < 2) continue;
+
+      const posText = (cells[0].textContent || "").trim();
+      const pos = normalizePosition(posText);
+      if (!pos) continue;
+
+      const numMatch = (cells[1].textContent || "").match(/(\d+[.,]\d+)/);
+      if (!numMatch) continue;
+
+      const value = Number(numMatch[1].replace(",", "."));
+      if (!Number.isFinite(value)) continue;
+
+      values[pos] = Math.max(values[pos] || 0, value);
+    }
+  }
+
+  function parseContributionByPositionFromText(text, values) {
+    const regex = /(vratar|stoper|branič|branic|wingback|bek|krilo|vezni|napadač|napadac|goalkeeper|defender|midfielder|winger|forward)\s*[\-:]?\s*(\d+[.,]\d+)/gi;
     let m;
     while ((m = regex.exec(text)) !== null) {
       const pos = normalizePosition(m[1]);
@@ -62,46 +90,61 @@
       if (pos && Number.isFinite(value)) values[pos] = Math.max(values[pos] || 0, value);
     }
 
-    return Object.keys(values).length > 0 ? values : null;
-  }
-
-  function levelToScore(level) {
-    const map = {
-      katastrofalan: 20,
-      slab: 40,
-      nedovoljan: 55,
-      prolazan: 70,
-      dobar: 82,
-      odlican: 90,
-      odličan: 90,
-      vrhunski: 96,
-      weak: 40,
-      inadequate: 55,
-      passable: 70,
-      solid: 82,
-      excellent: 90,
-      formidable: 96,
-    };
-    return map[level.toLowerCase()] ?? null;
-  }
-
-  function parsePhysicalSignals(text) {
-    const staminaMatch = text.match(/izdr[žz]ljivost\s+([a-zčćžšđ]+)/i);
-    const formMatch = text.match(/forma\s+([a-zčćžšđ]+)/i);
-
-    const staminaScore = staminaMatch ? levelToScore(staminaMatch[1]) : null;
-    const formScore = formMatch ? levelToScore(formMatch[1]) : null;
-
-    return { staminaScore, formScore };
-  }
-
-  function parseMatchUtilizationScore(text) {
-    const minutesMatch = text.match(/(\d{2,3})\s*\/\s*90/);
-    if (minutesMatch) {
-      const val = Number(minutesMatch[1]);
-      if (Number.isFinite(val)) return Math.max(0, Math.min(100, Math.round((val / 90) * 100)));
+    const bestPosMatch = text.match(/najbolja\s+pozicija\s*:\s*([^\n(]+)\((\d+[.,]\d+)\)/i);
+    if (bestPosMatch) {
+      const pos = normalizePosition(bestPosMatch[1]);
+      const value = Number(bestPosMatch[2].replace(",", "."));
+      if (pos && Number.isFinite(value)) values[pos] = Math.max(values[pos] || 0, value);
     }
-    return null;
+  }
+
+  function parseContributionByPosition(text) {
+    const values = {};
+    parseContributionByPositionFromTable(values);
+    parseContributionByPositionFromText(text, values);
+    return Object.keys(values).length ? values : null;
+  }
+
+  function parseSkillNumbers(text) {
+    const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
+
+    const skillMap = {
+      goalkeeping: /na\s+vratima|goalkeeping/i,
+      defending: /obrana|defending/i,
+      playmaking: /kreiranje|playmaking/i,
+      winger: /krilo|winger/i,
+      passing: /proigravanje|passing/i,
+      scoring: /napad|scoring/i,
+      setPieces: /prekid|set\s*pieces?/i,
+      stamina: /izdr[žz]ljivost|stamina/i,
+      form: /forma|form/i,
+    };
+
+    const result = {};
+
+    for (const line of lines) {
+      for (const [key, rx] of Object.entries(skillMap)) {
+        if (!rx.test(line)) continue;
+        const m = line.match(/(\d{1,2})\s*$/);
+        if (m) {
+          const val = Number(m[1]);
+          if (Number.isFinite(val)) result[key] = val;
+        }
+      }
+    }
+
+    return result;
+  }
+
+  function parseMinutesRatio(text) {
+    const rows = [...text.matchAll(/\((\d{1,3})'\)/g)];
+    if (!rows.length) return null;
+
+    const last5 = rows.slice(-5).map((m) => Number(m[1])).filter(Number.isFinite);
+    if (!last5.length) return null;
+
+    const avg = last5.reduce((a, b) => a + b, 0) / last5.length;
+    return avg / 90;
   }
 
   async function loadBenchmarks() {
@@ -113,8 +156,8 @@
   function findPsicoTSIBlock() {
     const headers = document.querySelectorAll("h3, h2, .boxTitle");
     for (const h of headers) {
-      const text = (h.textContent || "").toLowerCase();
-      if (text.includes("psicotsi")) return h.closest("div");
+      const headerText = (h.textContent || "").toLowerCase();
+      if (headerText.includes("psicotsi")) return h.closest("div");
     }
     return null;
   }
@@ -145,28 +188,56 @@
     if (document.body) document.body.prepend(panel);
   }
 
-  async function injectTES() {
+  function stableRender(result) {
+    const key = JSON.stringify({
+      p: result.primaryPosition,
+      c: result.realContribution,
+      a: Number(result.age.toFixed(2)),
+      s: result.tesScore,
+      t: result.performanceTier,
+    });
+
+    if (key === lastRenderKey && document.getElementById(PANEL_ID)) {
+      return;
+    }
+
+    lastRenderKey = key;
     window.TESUI.removePanel();
-    if (!isPlayerDetailsPage()) return;
+    attachPanel(window.TESUI.createPanel(result));
+  }
+
+  async function injectTES() {
+    if (!isPlayerDetailsPage()) {
+      window.TESUI.removePanel();
+      lastRenderKey = "";
+      return;
+    }
 
     const text = document.body ? document.body.innerText : "";
     const ageYears = parseAgeYears(text);
     const contributionByPosition = parseContributionByPosition(text);
-    const { staminaScore, formScore } = parsePhysicalSignals(text);
-    const matchUtilizationScore = parseMatchUtilizationScore(text);
+    const skills = parseSkillNumbers(text);
+    const minutesRatio = parseMinutesRatio(text);
 
     if (!Number.isFinite(ageYears) || !contributionByPosition) return;
 
     const benchmarks = await loadBenchmarks();
     const result = window.TESEngine.calculateTES(
-      { ageYears, contributionByPosition, staminaScore, formScore, matchUtilizationScore },
+      {
+        ageYears,
+        contributionByPosition,
+        skills,
+        stamina: skills.stamina,
+        form: skills.form,
+        minutesRatio,
+      },
       benchmarks
     );
 
     if (!result) return;
 
     window.TESUI.ensureStyle();
-    attachPanel(window.TESUI.createPanel(result));
+    stableRender(result);
   }
 
   let scheduled = false;
@@ -180,10 +251,17 @@
       } catch (err) {
         console.warn("[TES] inject failed", err);
       }
-    }, 120);
+    }, 160);
   }
 
-  const observer = new MutationObserver(scheduleInject);
+  const observer = new MutationObserver((mutations) => {
+    const externalChange = mutations.some((m) => {
+      const t = m.target;
+      return !(t && t.closest && t.closest(`#${PANEL_ID}`));
+    });
+
+    if (externalChange) scheduleInject();
+  });
 
   function startObserver() {
     if (!document.body) return false;

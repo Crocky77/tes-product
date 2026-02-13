@@ -56,7 +56,7 @@
   function competitiveWindow(age) {
     if (age < 22) return "U21 Eligible";
     if (age <= 27.5) return "NT Prime Window";
-    if (age <= 30.5) return "Peak Age Range";
+    if (age <= 31.0) return "Peak Age Range";
     return "Post-Peak Phase";
   }
 
@@ -64,22 +64,59 @@
     return Math.round(clamp(value * 100, 0, 100));
   }
 
-  function skillStructureLabel(ratio) {
-    if (ratio >= 0.85) return "Balanced";
-    if (ratio >= 0.7) return "Slight Deviation";
-    return "Unbalanced";
+  function skillStructureCheck(primaryPosition, skills) {
+    const fallback = { score: 0, label: "Balanced" };
+    if (!skills) return fallback;
+
+    const { defending, playmaking, passing, scoring } = skills;
+
+    if (primaryPosition === "CD") {
+      if (defending >= 16 && playmaking >= 10 && passing >= 8) return { score: 0, label: "Balanced" };
+      if (defending >= 14 && playmaking >= 8 && passing >= 6) return { score: -4, label: "Slight Deviation" };
+      return { score: -8, label: "Unbalanced" };
+    }
+
+    if (primaryPosition === "IM") {
+      if (playmaking >= 15 && passing >= 9 && defending >= 7) return { score: 0, label: "Balanced" };
+      if (playmaking >= 13 && passing >= 7) return { score: -3, label: "Slight Deviation" };
+      return { score: -7, label: "Unbalanced" };
+    }
+
+    if (primaryPosition === "FW") {
+      if (scoring >= 15 && passing >= 8) return { score: 0, label: "Balanced" };
+      if (scoring >= 13 && passing >= 6) return { score: -3, label: "Slight Deviation" };
+      return { score: -7, label: "Unbalanced" };
+    }
+
+    return fallback;
   }
 
-  function readinessLabel(score) {
-    if (score >= 80) return "Optimal";
-    if (score >= 60) return "Adequate";
-    return "Below Optimal";
+  function physicalModifier(stamina, form) {
+    const s = Number.isFinite(stamina) ? clamp(stamina, 1, 20) : 7;
+    const f = Number.isFinite(form) ? clamp(form, 1, 20) : 7;
+
+    const weighted = s * 0.45 + f * 0.55;
+    if (weighted >= 8.5) return { score: 1, label: "Optimal" };
+    if (weighted >= 6.5) return { score: 0, label: "Adequate" };
+    return { score: -3, label: "Below Optimal" };
   }
 
-  function utilizationLabel(score) {
-    if (score >= 80) return "High";
-    if (score >= 55) return "Moderate";
-    return "Low";
+  function matchUsageModifier(minutesRatio) {
+    if (!Number.isFinite(minutesRatio)) return { score: 0, label: "Moderate", value: 60 };
+    const ratio = clamp(minutesRatio, 0, 1.2);
+    const percent = Math.round(ratio * 100);
+
+    if (ratio >= 0.95) return { score: 1, label: "High", value: percent };
+    if (ratio >= 0.65) return { score: 0, label: "Moderate", value: percent };
+    return { score: -3, label: "Low", value: percent };
+  }
+
+  function eliteCapAllowed(age, realContribution, eliteBenchmark) {
+    if (!Number.isFinite(age) || !Number.isFinite(realContribution) || !Number.isFinite(eliteBenchmark)) {
+      return false;
+    }
+
+    return age >= 28 && age <= 31 && realContribution >= eliteBenchmark * 1.03;
   }
 
   function calculateTES(input, benchmarks) {
@@ -95,24 +132,31 @@
     if (!Number.isFinite(minBenchmark) || minBenchmark <= 0) return null;
 
     const eliteBenchmark = minBenchmark / 0.9;
-    const normalizedContribution = primary.realContribution / eliteBenchmark;
-    const tesRaw = normalizedContribution * 100;
-    const tesScore = Math.round(clamp(tesRaw, 0, 100));
 
-    const ageBenchmarkRatio = toPercent(primary.realContribution / minBenchmark);
-    const positionalImpact = toPercent(normalizedContribution);
+    const performanceRatio = primary.realContribution / minBenchmark;
+    const cappedRatio = clamp(performanceRatio, 0, 1.15);
+    const tesRaw = cappedRatio * 100;
+
+    const structure = skillStructureCheck(primary.primaryPosition, input.skills);
+    const physical = physicalModifier(input.stamina, input.form);
+    const usage = matchUsageModifier(input.minutesRatio);
+
+    const agePenalty = age > 31 ? -2 : 0;
+
+    let tesAdjusted = tesRaw + structure.score + physical.score + usage.score + agePenalty;
+
+    if (!eliteCapAllowed(age, primary.realContribution, eliteBenchmark) && tesAdjusted > 96) {
+      tesAdjusted = 96;
+    }
+
+    const tesScore = Math.round(clamp(tesAdjusted, 0, 100));
+
+    const ageBenchmarkRatio = Math.round((primary.realContribution / minBenchmark) * 100);
+    const positionalImpact = Math.round(clamp((primary.realContribution / eliteBenchmark) * 100, 0, 100));
 
     const secondaryRatio = primary.realContribution > 0
       ? clamp(primary.secondaryContribution / primary.realContribution, 0, 1)
       : 1;
-
-    const staminaScore = Number.isFinite(input.staminaScore) ? clamp(input.staminaScore, 0, 100) : 65;
-    const formScore = Number.isFinite(input.formScore) ? clamp(input.formScore, 0, 100) : 65;
-    const physicalReadinessScore = Math.round((staminaScore + formScore) / 2);
-
-    const matchUtilizationScore = Number.isFinite(input.matchUtilizationScore)
-      ? clamp(input.matchUtilizationScore, 0, 100)
-      : 62;
 
     return {
       age,
@@ -129,15 +173,21 @@
         positionalImpact,
         ageEfficiencyIndex: ageBenchmarkRatio,
         skillStructureBalanceValue: Math.round(secondaryRatio * 100),
-        skillStructureBalanceLabel: skillStructureLabel(secondaryRatio),
-        physicalReadinessValue: physicalReadinessScore,
-        physicalReadinessLabel: readinessLabel(physicalReadinessScore),
-        matchUtilizationValue: matchUtilizationScore,
-        matchUtilizationLabel: utilizationLabel(matchUtilizationScore),
+        skillStructureBalanceLabel: structure.label,
+        physicalReadinessValue: Math.round(((input.stamina ?? 7) + (input.form ?? 7)) / 2 * 5),
+        physicalReadinessLabel: physical.label,
+        matchUtilizationValue: usage.value,
+        matchUtilizationLabel: usage.label,
       },
       advanced: {
-        normalizedContributionScore: toPercent(normalizedContribution),
+        normalizedContributionScore: toPercent(primary.realContribution / eliteBenchmark),
         secondaryPositionScore: primary.secondaryContribution,
+        modifiers: {
+          structure: structure.score,
+          physical: physical.score,
+          usage: usage.score,
+          age: agePenalty,
+        },
       },
     };
   }

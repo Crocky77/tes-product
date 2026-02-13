@@ -1,12 +1,18 @@
 {
   "manifest_version": 3,
-  "name": "TES – Training Efficiency Score",
-  "version": "0.1.0",
-  "description": "Displays Training Efficiency Score (TES) on Hattrick player pages.",
+  "name": "TES – Talent Evaluation Score",
+  "version": "0.2.0",
+  "description": "Displays Talent Evaluation Score (TES) on Hattrick player pages.",
+  "web_accessible_resources": [
+    {
+      "resources": ["benchmarks.json"],
+      "matches": ["*://*.hattrick.org/*"]
+    }
+  ],
   "content_scripts": [
     {
       "matches": ["*://*.hattrick.org/*"],
-      "js": ["content.js"],
+      "js": ["engine.js", "ui.js", "content.js"],
       "run_at": "document_idle",
       "all_frames": true
     }

@@ -54,3 +54,12 @@ Ako ne vidiš panel:
 - provjeri da URL sadrži `/Club/Players/Player.aspx`
 - reload extension u `chrome://extensions`
 - hard refresh stranice (`Ctrl+F5`)
+
+
+## CHPP API vs local evaluacija
+
+Bez CHPP licence/API-ja moramo ručno održavati benchmark tablice i parsirati samo vidljive DOM podatke.
+To je ispravan put za ovu fazu projekta.
+
+Kad CHPP API bude dostupan, možemo povećati preciznost (stabilniji input, bolji match usage i coverage),
+ali i dalje trebamo ručno definiranu evaluacijsku metodologiju (benchmark + modifikatori).

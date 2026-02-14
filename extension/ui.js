@@ -21,8 +21,9 @@
       #tes-module .tes-head { display:flex; justify-content:space-between; gap:10px; margin-bottom:8px; }
       #tes-module .tes-title { font-size:13px; font-weight:700; text-transform:uppercase; color:#1f5e2e; }
       #tes-module .tes-subtitle { font-size:10px; color:#5b6b61; margin-top:2px; }
-      #tes-module .tes-version { color:#5d6f62; font-size:11px; font-weight:700; white-space:nowrap; }
+      #tes-module .tes-version { color:#5d6f62; font-size:11px; font-weight:700; white-space:nowrap; text-align:right; }
       #tes-module .tes-info { color:#5d6f62; margin-left:6px; cursor:help; }
+      #tes-module .tes-source { display:inline-block; margin-top:4px; padding:1px 6px; border:1px solid #c9d7ce; background:#f3f8f5; color:#3d5246; font-size:10px; border-radius:9px; }
 
       #tes-module .tes-score-wrap {
         display:flex;
@@ -114,7 +115,7 @@
           <div class="tes-title">TES – Talent Evaluation Score <span class="tes-info" title="${tooltip}">ⓘ</span></div>
           <div class="tes-subtitle">Positional Performance & Age Benchmark Analysis</div>
         </div>
-        <div class="tes-version">v1.0 PRO</div>
+        <div class="tes-version">v1.0 PRO<div class="tes-source">Source: ${result.dataSource || 'DOM'}</div></div>
       </div>
 
       <div class="tes-score-wrap">

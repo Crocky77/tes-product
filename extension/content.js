@@ -13,6 +13,51 @@
   let lastRenderKey = "";
   let resourceCache = null;
 
+  class DomProvider {
+    getName() {
+      return "DOM";
+    }
+
+    read() {
+      const text = document.body ? document.body.innerText : "";
+      const skills = parseSkillNumbers(text);
+
+      return {
+        ageYears: parseAgeYears(text),
+        contributionByPosition: parseContributionByPosition(text),
+        skills,
+        stamina: skills.stamina,
+        form: skills.form,
+        minutesRatio: parseMinutesRatio(text),
+      };
+    }
+  }
+
+  // Phase A: CHPP provider interface placeholder.
+  class ChppProvider {
+    getName() {
+      return "CHPP";
+    }
+
+    isAvailable() {
+      return false;
+    }
+
+    read() {
+      return null;
+    }
+  }
+
+  const providers = {
+    dom: new DomProvider(),
+    chpp: new ChppProvider(),
+  };
+
+  function resolveProvider() {
+    if (providers.chpp.isAvailable()) return providers.chpp;
+    return providers.dom;
+  }
+
   function isPlayerDetailsPage() {
     return (window.location.pathname || "").toLowerCase().includes(PLAYER_PAGE_PATH);
   }
@@ -232,11 +277,19 @@
       return;
     }
 
-    const text = document.body ? document.body.innerText : "";
-    const ageYears = parseAgeYears(text);
-    const contributionByPosition = parseContributionByPosition(text);
-    const skills = parseSkillNumbers(text);
-    const minutesRatio = parseMinutesRatio(text);
+    const provider = resolveProvider();
+    const data = provider.read();
+
+    if (!data) return;
+
+    const {
+      ageYears,
+      contributionByPosition,
+      skills,
+      stamina,
+      form,
+      minutesRatio,
+    } = data;
 
     if (!Number.isFinite(ageYears) || !contributionByPosition) return;
 
@@ -246,8 +299,8 @@
         ageYears,
         contributionByPosition,
         skills,
-        stamina: skills.stamina,
-        form: skills.form,
+        stamina,
+        form,
         minutesRatio,
       },
       benchmarks,
@@ -255,6 +308,8 @@
     );
 
     if (!result) return;
+
+    result.dataSource = provider.getName();
 
     window.TESUI.ensureStyle();
     stableRender(result);
